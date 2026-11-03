@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Job Market Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b2030;--mu:#667;--bd:#e3e6ef;--ac:#3b5bdb;--c2:#12b886;--c3:#f59f00;--c4:#e8590c;--c5:#ae3ec9;--c6:#1098ad;box-sizing:border-box;color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#12141c;--card:#1b1f2b;--tx:#e8eaf2;--mu:#98a0b8;--bd:#2c3243;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#12141c;--card:#1b1f2b;--tx:#e8eaf2;--mu:#98a0b8;--bd:#2c3243;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:20px 20px 8px;max-width:1200px;margin:auto}h1{margin:0;font-size:22px}.sub{color:var(--mu);font-size:13px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;display:flex;gap:6px;overflow-x:auto;padding:8px 20px;max-width:1200px;margin:auto}
+nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:7px 13px;border-radius:20px;cursor:pointer;white-space:nowrap;font:inherit}
+nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+main{max-width:1200px;margin:auto;padding:8px 20px 40px}section{display:none}section.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.k{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px}.k b{display:block;font-size:22px}.k span{color:var(--mu);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;min-width:0}.c h3{margin:0 0 2px;font-size:14px}.c p{margin:0 0 8px;color:var(--mu);font-size:12px}
+.cv{position:relative;height:260px}.note{background:var(--card);border-left:4px solid var(--c3);border-radius:6px;padding:10px 14px;margin:0 0 12px;font-size:13px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:right}th:first-child,td:first-child{text-align:left}
+.best{font-weight:700;color:var(--c2)}.base{color:var(--mu)}
+</style></head><body>
+<header><h1>AI Job Market Dashboard</h1><div class="sub" id="sub"></div></header>
+<nav id="nav"></nav>
+<main>
+<section id="s0"><div class="kpis" id="kp"></div>
+<div class="note" id="dn"></div><div class="grid" id="g0"></div></section>
+<section id="s1"><div class="note" id="n1"></div><div class="grid" id="g1"></div><div class="c" style="margin-top:12px"><h3>Model comparison (20% hold-out + 5-fold CV)</h3><p>Target: salary (currency not stated in the file). Train 80% / test 20%, random_state 42.</p><div class="tw"><table id="t1"></table></div></div></section>
+<section id="s2"><div class="grid" id="g2"></div></section>
+<section id="s3"><div class="note" id="n3"></div><div class="grid" id="g3"></div></section>
+<section id="s4"><div class="grid" id="g4"></div></section>
+<section id="s5"><div class="note" id="n5"></div><div class="grid" id="g5"></div><div class="c" style="margin-top:12px"><h3>Skill prevalence by job title (% of postings requiring the skill)</h3><div class="tw"><table id="t5"></table></div></div></section>
+</main>
+<script>
+const D=__DATA__;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const P=['--ac','--c2','--c3','--c4','--c5','--c6'];const pal=()=>P.map(css);
+const f0=n=>Math.round(n).toLocaleString('en-US'),fk=n=>(n/1000).toFixed(1)+'k';
+const L={skills_python:'Python',skills_sql:'SQL',skills_ml:'Machine Learning',skills_deep_learning:'Deep Learning',skills_cloud:'Cloud'};
+const tabs=['Overview','Salary prediction','Job demand','ML classification','Workforce analytics','Skill demand trends'];
+const nav=document.getElementById('nav');
+tabs.forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>show(i);nav.appendChild(b)});
+function show(i){[...nav.children].forEach((b,j)=>b.classList.toggle('on',i==j));document.querySelectorAll('section').forEach((s,j)=>s.classList.toggle('on',i==j));history.replaceState(null,'','#t'+i);Object.values(Chart.instances).forEach(c=>c.resize())}
+const sal=a=>a.map(x=>Math.round(x.avg_sal));
+function card(g,title,sub,cfg){const d=document.createElement('div');d.className='c';d.innerHTML='<h3>'+title+'</h3><p>'+sub+'</p><div class="cv"><canvas></canvas></div>';document.getElementById(g).appendChild(d);
+ Chart.defaults.color=css('--mu');Chart.defaults.borderColor=css('--bd');cfg.options=Object.assign({responsive:true,maintainAspectRatio:false},cfg.options||{});return new Chart(d.querySelector('canvas'),cfg)}
+const bar=(g,t,s,labels,data,o={})=>card(g,t,s,{type:'bar',data:{labels,datasets:[{data,backgroundColor:o.multi?pal():css('--ac'),borderRadius:3}]},options:{indexAxis:o.h?'y':'x',plugins:{legend:{display:false}},scales:{[o.h?'x':'y']:{beginAtZero:o.zero!==false,min:o.min}}}});
+const line=(g,t,s,labels,sets,o={})=>card(g,t,s,{type:'line',data:{labels,datasets:sets.map((d,i)=>({label:d[0],data:d[1],borderColor:pal()[i],backgroundColor:pal()[i],tension:.25,pointRadius:3}))},options:{scales:{y:{min:o.min,max:o.max}},plugins:{legend:{display:sets.length>1}}}});
+function table(id,head,rows){document.getElementById(id).innerHTML='<tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')}
+document.getElementById('sub').textContent=f0(D.n)+' job postings · 2020–2026 · 7 countries · 6 job titles · source: uploaded Excel (CLEANED Dataset sheet)';
+// OVERVIEW
+const mean=D.title.reduce((a,t)=>a+t.avg_sal*t.postings,0)/D.n;
+document.getElementById('kp').innerHTML=[['Postings',f0(D.n)],['Total openings',f0(D.open)],['Mean salary',f0(mean)],['Best salary model R²',D.sm.slice(1).reduce((a,m)=>Math.max(a,m.r2),0).toFixed(3)],['High-urgency postings',(D.urg.find(u=>u.hiring_urgency=='High').postings/D.n*100).toFixed(1)+'%']].map(k=>'<div class="k"><b>'+k[1]+'</b><span>'+k[0]+'</span></div>').join('');
+document.getElementById('dn').innerHTML='<b>Data notes.</b> The RAW and CLEANED sheets are identical (10,345 rows, 19 columns, no missing values, no duplicate rows). Salary currency and period are not stated in the file, so values are shown as recorded. Postings dated 2026 are included exactly as they appear in the data.';
+bar('g0','Average salary by job title','As recorded',D.title.map(t=>t.job_title),sal(D.title),{h:1});
+bar('g0','Total openings by job title','Sum of job_openings',D.title.map(t=>t.job_title),D.title.map(t=>t.openings),{h:1});
+card('g0','Postings per year','Count of postings',{type:'bar',data:{labels:D.yr.map(y=>y.job_posting_year),datasets:[{data:D.yr.map(y=>y.postings),backgroundColor:css('--c2'),borderRadius:3}]},options:{plugins:{legend:{display:false}}}});
+// SALARY
+const best=D.sm.slice(1).reduce((a,m)=>m.r2>a.r2?m:a);
+document.getElementById('n1').innerHTML='<b>Result.</b> All three models reach R² ≈ '+best.r2+' on held-out data (MAE ≈ '+f0(best.mae)+'), versus ≈ 0 for the mean baseline. Permutation importance shows salary is driven almost entirely by <b>experience level</b> and <b>job title</b>, followed by company size and the ML / Deep Learning / Cloud skill flags. Industry, country, remote type, education, years of experience, posting date, urgency and openings add essentially nothing. Since Linear Regression matches the tree models, the relationship is close to additive.';
+table('t1',['Model','Test R²','MAE','RMSE','CV R² (mean ± sd)'],D.sm.map(m=>{const b=m.model==best.model;return['<span class="'+(b?'best':m.model.startsWith('Mean')?'base':'')+'">'+m.model+'</span>',m.r2,f0(m.mae),f0(m.rmse),m.cv_r2+' ± '+m.cv_sd]}));
+const im=Object.entries(D.imp).filter(e=>e[1]>0.001);
+bar('g1','What drives salary','Permutation importance: drop in test R² when the feature is shuffled ('+best.model+')',im.map(e=>e[0].replace('skills_','skill: ').replace(/_/g,' ')),im.map(e=>e[1]),{h:1});
+card('g1','Actual vs predicted salary','250 test-set postings',{type:'scatter',data:{datasets:[{data:D.avp.map(p=>({x:p[0],y:p[1]})),backgroundColor:css('--ac')+'99',pointRadius:2}]},options:{plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Actual'}},y:{title:{display:true,text:'Predicted'}}}}});
+const ex=['Entry','Mid','Senior'];
+card('g1','Average salary: job title × experience','As recorded',{type:'bar',data:{labels:D.ets.map(r=>r.job_title),datasets:ex.map((e,i)=>({label:e,data:D.ets.map(r=>r[e]),backgroundColor:pal()[i]}))},options:{scales:{y:{beginAtZero:true}}}});
+// DEMAND
+const dm=(g,t,k,key)=>bar(g,t,'Sum of job_openings',D[k].map(x=>x[key]),D[k].map(x=>x.openings),{h:1});
+dm('g2','Openings by job title','title','job_title');dm('g2','Openings by industry','ind','company_industry');dm('g2','Openings by country','ctry','country');dm('g2','Openings by company size','size','company_size');
+line('g2','Openings by year','Total openings across all titles',D.yr.map(y=>y.job_posting_year),[['Openings',D.yr.map(y=>y.openings)]],{min:0});
+line('g2','Openings by year and job title','Sum of job_openings',D.ty.map(r=>r.job_posting_year),Object.keys(D.ty[0]).filter(k=>k!='job_posting_year').map(k=>[k,D.ty.map(r=>r[k])]),{min:0});
+bar('g2','Openings by posting month','Seasonality across all years',D.mon.map(m=>m.job_posting_month),D.mon.map(m=>m.openings),{min:0});
+card('g2','Hiring urgency mix','Share of postings',{type:'doughnut',data:{labels:D.urg.map(u=>u.hiring_urgency),datasets:[{data:D.urg.map(u=>u.postings),backgroundColor:[css('--c4'),css('--c2'),css('--c3')]}]}});
+// CLASSIFICATION
+document.getElementById('n3').innerHTML='<b>How to read this.</b> Every task is compared with a majority-class baseline using a stratified 80/20 split and 5-fold CV. <b>Hiring urgency</b> is predicted perfectly by tree models, and a shallow decision tree explains why: in this file every posting with 7+ openings is High; below that, it is High when both ML and Deep Learning skills are required, otherwise Low for ≤7 years of experience and Medium above. That is a deterministic rule in the data, not a general hiring insight. <b>Remote type</b> cannot be predicted (≈ chance), so the available columns carry no signal for it.';
+D.clf.forEach((c,i)=>{const d=document.createElement('div');d.className='c';const t=Object.entries(c.classes).map(e=>e[0]+': '+f0(e[1])).join(' · ');
+d.innerHTML='<h3>'+c.name+'</h3><p>'+t+'</p><div class="cv" style="height:200px"><canvas></canvas></div>';document.getElementById('g3').appendChild(d);
+new Chart(d.querySelector('canvas'),{type:'bar',data:{labels:c.res.map(r=>r.model),datasets:[{label:'Test accuracy',data:c.res.map(r=>r.acc),backgroundColor:css('--ac')},{label:'Macro F1',data:c.res.map(r=>r.f1),backgroundColor:css('--c2')},{label:'CV accuracy',data:c.res.map(r=>r.cv_acc),backgroundColor:css('--c3')}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:1}}}})});
+// WORKFORCE
+const wf=(t,k,key)=>bar('g4',t,'Average salary, as recorded',D[k].map(x=>x[key]),sal(D[k]),{min:0});
+wf('Salary by experience level','exp','experience_level');wf('Salary by company size','size','company_size');wf('Salary by education','edu','education_level');wf('Salary by remote type','rem','remote_type');wf('Salary by country','ctry','country');wf('Salary by industry','ind','company_industry');
+line('g4','Average salary by years of experience','Years of experience column (0–14)',D.ys.map(y=>y.years_experience),[['Avg salary',D.ys.map(y=>Math.round(y.mean))]],{min:0});
+line('g4','Average salary by posting year','Flat over time?',D.yr.map(y=>y.job_posting_year),[['Avg salary',sal(D.yr)]],{min:0});
+bar('g4','Postings by remote type','Count',D.rem.map(x=>x.remote_type),D.rem.map(x=>x.postings),{min:0});
+bar('g4','Postings by education level','Count',D.edu.map(x=>x.education_level),D.edu.map(x=>x.postings),{min:0});
+// SKILLS
+const sk=Object.keys(L);
+const pr=sk.map(s=>D.sp[s][2]);
+document.getElementById('n5').innerHTML='<b>Result.</b> Each skill appears in roughly half of all postings in every year (range '+Math.min(...D.sy.flatMap(r=>sk.map(s=>r[s])))+'–'+Math.max(...D.sy.flatMap(r=>sk.map(s=>r[s])))+'%), with no sustained upward or downward trend in this data. The salary gap is where skills differ: Deep Learning, ML and Cloud postings pay more; Python and SQL show no meaningful gap.';
+line('g5','Skill demand by posting year','% of postings requiring the skill',D.sy.map(r=>r.job_posting_year),sk.map(s=>[L[s],D.sy.map(r=>r[s])]),{min:40,max:60});
+bar('g5','Salary premium when skill is required','Mean salary with skill minus without (unadjusted)',sk.map(s=>L[s]),pr,{h:1});
+bar('g5','Average salary by number of skills required','Postings requiring 0–5 of the listed skills',D.ns.map(x=>x.nskills),D.ns.map(x=>Math.round(x.mean)),{min:0});
+table('t5',['Job title'].concat(sk.map(s=>L[s])),D.st.map(r=>[r.job_title].concat(sk.map(s=>r[s]+'%'))));
+show(+(location.hash.slice(2))||0);
+</script></body></html>
