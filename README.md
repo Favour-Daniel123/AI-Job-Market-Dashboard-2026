@@ -87,27 +87,3 @@ pip install -r requirements.txt
 ```
 
 Or run the steps individually: `python src/analysis.py`, `python src/build_dashboard.py`, `python src/build_excel.py`, `npm install && node src/build_deck.js`.
-
-Files freshly written by `build_excel.py` hold formulas without cached values; Excel calculates them when the file is opened.
-
-## Publish the dashboard with GitHub Pages
-
-1. Push the repository to GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**, branch `main`, folder `/docs`, then save.
-4. After a minute the dashboard is live at `https://<your-username>.github.io/<your-repo>/`.
-
-The dashboard loads Chart.js from a CDN, so it needs an internet connection.
-
-## Repository structure
-
-```
-├── data/                 source dataset
-├── src/                  analysis and build scripts
-├── results/results.json  computed results
-├── outputs/              xlsx, pptx, html deliverables
-├── docs/index.html       dashboard (GitHub Pages)
-├── run_all.sh
-├── requirements.txt
-└── package.json
-```
